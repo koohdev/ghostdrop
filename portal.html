@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GHOSTDROP.</title>
+    <!-- Tailwind CSS and JetBrains Mono from Google Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <script src="/static/jszip.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ["JetBrains Mono", "monospace"]
+                    },
+                    colors: {
+                        bg: 'var(--bg)',
+                        cardBg: 'var(--cardBg)',
+                        hoverBg: 'var(--hoverBg)',
+                        activeBg: 'var(--activeBg)',
+                        ink: 'var(--ink)',
+                        secondary: 'var(--secondary)',
+                        muted: 'var(--muted)',
+                        borderCol: 'var(--borderCol)',
+                        terminal: '#39ff14'
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --bg: #fdfcfc;
+            --cardBg: #fdfcfc;
+            --hoverBg: #f1eeee;
+            --activeBg: #e9e6e6;
+            --ink: #201d1d;
+            --secondary: #646262;
+            --muted: #9a9898;
+            --borderCol: rgba(15, 0, 0, 0.12);
+        }
+        .dark {
+            --bg: #0f0e0e;
+            --cardBg: #151414;
+            --hoverBg: #201e1e;
+            --activeBg: #2a2727;
+            --ink: #e5e5e5;
+            --secondary: #a0a0a0;
+            --muted: #6c6c6c;
+            --borderCol: rgba(255, 255, 255, 0.08);
+        }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: transparent !important;
+        }
+        .btn-spring {
+            transition: all 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-spring:active {
+            transform: scale(0.97);
+        }
+    </style>
+</head>
+<body class="bg-bg text-ink min-h-screen flex flex-col items-center transition-colors duration-300 pb-12 select-none">
+    
+    <!-- Background Video -->
+    <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+        <video autoplay loop muted playsinline class="w-full h-full object-cover">
+            <source src="/davinci.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0" style="background: var(--bg); opacity: 0.85;"></div>
+    </div>
+    
+    <!-- Theme Sync Script -->
+    <script>
+        (function () {
+            var dark = localStorage.getItem('dark_mode') === 'true' || 
+                       (localStorage.getItem('dark_mode') === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (dark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+
+
+    <!-- Main Content Wrapper -->
+    <div class="w-full max-w-md landscape:max-w-5xl md:max-w-5xl px-6 box-border flex-grow flex flex-col">
+        <header class="flex justify-between items-center py-6 border-b border-borderCol w-full select-none mb-8">
+            <div class="flex items-center gap-2">
+                <span class="text-[#39ff14] text-sm animate-pulse">✦</span>
+                <span class="font-bold text-xs tracking-tight">[x] GHOSTDROP.</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle-btn" class="bg-cardBg hover:bg-hoverBg active:bg-activeBg border border-borderCol text-secondary px-2.5 py-1 rounded-[4px] text-[10px] font-bold transition select-none btn-spring" onclick="toggleTheme()">
+                    [ DARK_MODE ]
+                </button>
+                <div class="bg-cardBg border border-borderCol text-secondary px-2.5 py-1 rounded-[4px] text-[10px] font-bold tracking-wider select-none">
+                    [x] NODE_MOBILE
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Grid Layout -->
+        <main class="grid grid-cols-1 landscape:grid-cols-2 md:grid-cols-2 gap-6 items-start w-full">
+            
+            <!-- Left Column: File attachment queue -->
+            <div class="space-y-6">
+                <div>
+                    <div class="text-secondary text-[10px] font-bold tracking-wider uppercase mb-2">[+] ATTACHMENTS</div>
+                    <div class="h-[1px] bg-borderCol w-full"></div>
+                </div>
+
+                <div class="bg-cardBg border border-borderCol rounded-[4px] p-6 transition duration-300">
+                    <input type="file" id="file-input" multiple class="hidden" onchange="handleFileSelect(event)">
+                    <div class="border border-dashed border-borderCol hover:border-ink hover:bg-hoverBg bg-bg rounded-[4px] py-14 px-6 text-center cursor-pointer transition select-none btn-spring" onclick="document.getElementById('file-input').click()">
+                        <div class="text-ink text-xs font-bold tracking-wider">[ SELECT FILES OR PHOTOS ]</div>
+                        <div class="text-muted text-[10px] mt-2 font-mono">browse local device storage</div>
+                    </div>
+
+                    <!-- File queue display area -->
+                    <div class="mt-6" id="file-list-container" style="display: none;">
+                        <div class="text-secondary text-[10px] font-bold tracking-wider uppercase mb-2.5">[x] QUEUED_ITEMS</div>
+                        <div id="file-list" class="border border-borderCol rounded-[4px] divide-y divide-borderCol max-h-48 overflow-y-auto bg-bg">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Transmission parameters and log -->
+            <div class="space-y-6">
+                <div>
+                    <div class="text-secondary text-[10px] font-bold tracking-wider uppercase mb-2">[+] TRANSMISSION_GATE</div>
+                    <div class="h-[1px] bg-borderCol w-full"></div>
+                </div>
+
+                <div class="space-y-4">
+                    <button class="w-full bg-ink text-bg hover:opacity-90 font-bold tracking-widest text-xs py-4 rounded-[4px] transition select-none btn-spring disabled:opacity-40 disabled:cursor-not-allowed border border-borderCol" id="transmit-btn" disabled onclick="startTransmission()">
+                        [ TRANSMIT BATCH ]
+                    </button>
+
+                    <!-- Progress monitoring dashboard -->
+                    <div class="progress-container bg-cardBg border border-borderCol rounded-[4px] p-4" id="progress-container" style="display: none;">
+                        <div class="flex justify-between items-center text-[10px] font-bold text-muted mb-2 tracking-wider">
+                            <span id="progress-label">[x] PREPARING_STREAM...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="h-2 bg-borderCol rounded-[4px] overflow-hidden">
+                            <div id="progress-bar-fill" class="h-full w-0 transition-all duration-100 ease-out bg-ink"></div>
+                        </div>
+                    </div>
+
+                    <!-- Terminal log output feed -->
+                    <div>
+                        <div class="text-secondary text-[10px] font-bold tracking-wider uppercase mb-2">[x] LOG_FEED</div>
+                        <div id="status-box" class="w-full bg-cardBg text-ink border border-borderCol rounded-[4px] p-4 font-mono text-[11px] leading-relaxed h-44 overflow-y-auto whitespace-pre-line shadow-inner select-text">Ready to transfer files.</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- wordmark footer -->
+        <footer class="w-full text-center py-6 mt-14 border-t border-borderCol select-none font-mono">
+            <div class="text-[9px] text-muted tracking-widest uppercase">
+                [x] Powered by GhostDrop &bull; Local Peer-to-Peer Stream
+            </div>
+        </footer>
+    </div>
+
+    <!-- Interface JavaScript Code -->
+    <script>
+        let selectedFiles = [];
+
+
+
+        // Theme switching operations
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('dark_mode', isDark);
+            updateThemeButtonText(isDark);
+        }
+
+        function updateThemeButtonText(isDark) {
+            const btn = document.getElementById('theme-toggle-btn');
+            if (btn) {
+                btn.innerText = isDark ? '[ LIGHT_MODE ]' : '[ DARK_MODE ]';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            updateThemeButtonText(isDark);
+        });
+
+        // File handler callbacks
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            
+            selectedFiles = Array.from(files);
+            renderFileList();
+            
+            const btn = document.getElementById('transmit-btn');
+            btn.disabled = false;
+            
+            logStatus(`Queued ${selectedFiles.length} file(s) for transmission.`);
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function renderFileList() {
+            const container = document.getElementById('file-list-container');
+            const list = document.getElementById('file-list');
+            list.innerHTML = '';
+            
+            if (selectedFiles.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'block';
+            selectedFiles.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-3 border-b border-borderCol last:border-b-0 hover:bg-hoverBg transition duration-200';
+                item.innerHTML = `
+                    <span class="font-bold text-ink truncate max-w-[70%] font-mono">${file.name}</span>
+                    <span class="text-secondary font-mono text-[10px]">${formatBytes(file.size)}</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function logStatus(msg, append = true) {
+            const box = document.getElementById('status-box');
+            if (append && box.innerText !== 'Ready to transfer files.') {
+                box.innerText += '\n' + msg;
+            } else {
+                box.innerText = msg;
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function startTransmission() {
+            if (selectedFiles.length === 0) return;
+            
+            const transmitBtn = document.getElementById('transmit-btn');
+            transmitBtn.disabled = true;
+            document.getElementById('file-input').disabled = true;
+            
+            const progContainer = document.getElementById('progress-container');
+            progContainer.style.display = 'block';
+            
+            logStatus('Initializing stream transmission...', false);
+            
+            try {
+                let uploadBlob = null;
+                let uploadFilename = '';
+                
+                if (selectedFiles.length === 1) {
+                    // Single file upload
+                    uploadBlob = selectedFiles[0];
+                    uploadFilename = selectedFiles[0].name;
+                    logStatus(`Processing single file: ${uploadFilename}`);
+                } else {
+                    // Batch multi-file compression using JSZip (offline)
+                    logStatus('Consolidating files into batch container (.zip)...');
+                    const zip = new JSZip();
+                    selectedFiles.forEach(file => {
+                        zip.file(file.name, file);
+                    });
+                    
+                    // Generate uncompressed ZIP for speed/low resource utilization
+                    uploadBlob = await zip.generateAsync({
+                        type: "blob",
+                        compression: "STORE"
+                    });
+                    uploadFilename = `batch_upload_${Date.now()}.zip`;
+                    logStatus(`Container built successfully: ${formatBytes(uploadBlob.size)}`);
+                }
+                
+                // Perform chunked streaming upload
+                await uploadBlobInChunks(uploadBlob, uploadFilename);
+                
+                logStatus('\n[TRANSFER_VERIFIED_SUCCESS]', true);
+                document.getElementById('progress-label').innerText = 'Success!';
+                const bar = document.getElementById('progress-bar-fill');
+                bar.style.background = 'var(--ink)';
+                
+            } catch (error) {
+                console.error(error);
+                logStatus(`\n[TRANSMISSION_ERROR]: ${error.message}`, true);
+                document.getElementById('progress-label').innerText = 'Error occurred';
+                const bar = document.getElementById('progress-bar-fill');
+                bar.style.background = 'var(--muted)';
+            }
+        }
+
+        async function uploadBlobInChunks(blob, filename) {
+            const chunkSize = 1024 * 1024; // 1 MB slices
+            const totalChunks = Math.ceil(blob.size / chunkSize);
+            const uploadId = 'session_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            
+            const progressBar = document.getElementById('progress-bar-fill');
+            const progressPercent = document.getElementById('progress-percent');
+            const progressLabel = document.getElementById('progress-label');
+            
+            logStatus(`Uploading: ${filename} in ${totalChunks} chunk(s)`);
+            
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, blob.size);
+                const chunk = blob.slice(start, end);
+                
+                const formData = new FormData();
+                formData.append("file", chunk, filename);
+                formData.append("filename", filename);
+                formData.append("upload_id", uploadId);
+                formData.append("chunk_index", i);
+                formData.append("total_chunks", totalChunks);
+                
+                // Retry logic per chunk
+                let success = false;
+                let attempts = 0;
+                while (!success && attempts < 3) {
+                    try {
+                        await sendChunkRequest(formData);
+                        success = true;
+                    } catch (err) {
+                        attempts++;
+                        logStatus(`Chunk ${i+1}/${totalChunks} failed (Attempt ${attempts}/3): ${err.message}`);
+                        if (attempts >= 3) throw new Error(`Failed to transmit chunk ${i+1}`);
+                        await new Promise(r => setTimeout(r, 1000)); // wait 1s before retry
+                    }
+                }
+                
+                const percent = Math.round(((i + 1) / totalChunks) * 100);
+                progressBar.style.width = percent + '%';
+                progressPercent.innerText = percent + '%';
+                progressLabel.innerText = `Sending chunk ${i+1} of ${totalChunks}...`;
+            }
+        }
+
+        function sendChunkRequest(formData) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", "/upload-chunk", true);
+                
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Server returned HTTP ${xhr.status}`));
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    reject(new Error("Network connection error"));
+                };
+                
+                xhr.send(formData);
+            });
+        }
+    </script>
+</body>
+</html>

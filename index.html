@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GHOSTDROP CONSOLE</title>
+    <!-- Tailwind CSS and JetBrains Mono -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ["JetBrains Mono", "monospace"]
+                    },
+                    colors: {
+                        bg: '#0f0e0e',
+                        cardBg: '#151414',
+                        hoverBg: '#201e1e',
+                        activeBg: '#2a2727',
+                        ink: '#e5e5e5',
+                        secondary: '#a0a0a0',
+                        muted: '#6c6c6c',
+                        borderCol: 'rgba(255, 255, 255, 0.08)',
+                        terminal: '#e5e5e5'
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: transparent !important;
+        }
+
+        .btn-spring {
+            transition: all 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .btn-spring:active {
+            transform: scale(0.97);
+        }
+    </style>
+</head>
+
+<body class="flex flex-col items-center bg-bg pb-8 min-h-screen overflow-y-auto text-ink select-none">
+
+    <!-- Background Video -->
+    <div class="-z-10 fixed inset-0 overflow-hidden pointer-events-none">
+        <video autoplay loop muted playsinline class="w-full h-full object-cover">
+            <source src="/davinci.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0" style="background: rgba(0, 0, 0, 0.93);"></div>
+    </div>
+
+    <!-- Desktop Console Wrapper (Full Width Dashboard) -->
+    <div class="box-border flex flex-col flex-grow px-8 pt-8 w-full max-w-7xl">
+        <header class="flex justify-between items-center mb-8 pb-5 border-borderCol border-b w-full select-none">
+            <div class="flex items-center gap-3">
+                <span class="text-[#39ff14] text-xl animate-pulse">✦</span>
+                <span class="font-bold text-base tracking-tight">[x] GHOSTDROP.</span>
+            </div>
+            <div
+                class="bg-cardBg px-4 py-2 border border-borderCol rounded-[4px] font-bold text-secondary text-xs tracking-wider select-none">
+                [x] CONSOLE_ACTIVE
+            </div>
+        </header>
+
+        <main class="flex-grow gap-8 grid grid-cols-1 lg:grid-cols-12 pb-8">
+
+            <!-- Left Column: Controls & System Parameters (lg:col-span-4) -->
+            <div class="space-y-6 lg:col-span-4">
+                <!-- System Config Card -->
+                <div class="space-y-5 bg-cardBg p-7 border border-borderCol rounded-[4px]">
+                    <div
+                        class="pb-3 border-borderCol border-b font-bold text-secondary text-xs uppercase tracking-wider">
+                        [x] SYSTEM_CONTROLS
+                    </div>
+
+                    <!-- Save path row -->
+                    <div class="space-y-2">
+                        <div class="font-bold text-secondary text-xs uppercase tracking-wider">SAVE_PATH:</div>
+                        <div
+                            class="flex justify-between items-center gap-3 bg-bg p-3.5 border border-borderCol rounded-[4px] text-sm">
+                            <span id="save-dir-path" class="font-bold text-ink truncate">/Downloads</span>
+                            <button onclick="browseSaveDir()"
+                                class="bg-hoverBg hover:bg-activeBg px-3 py-1.5 rounded font-bold text-white hover:text-secondary text-xs btn-spring shrink-0">
+                                [ BROWSE ]
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-3 pt-2">
+                        <button onclick="openFolder()"
+                            class="hover:bg-hoverBg active:bg-activeBg px-4 py-3.5 border border-borderCol rounded-[4px] w-full font-bold text-ink text-sm text-center transition btn-spring">
+                            [ OPEN_DIRECTORY ]
+                        </button>
+                        <button onclick="shutdownServer()"
+                            class="hover:bg-hoverBg active:bg-activeBg px-4 py-3.5 border border-borderCol rounded-[4px] w-full font-bold text-red-500 text-sm text-center transition btn-spring">
+                            [ SHUTDOWN_SERVER ]
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info status widget -->
+                <div class="space-y-4 bg-cardBg p-7 border border-borderCol rounded-[4px]">
+                    <div
+                        class="pb-3 border-borderCol border-b font-bold text-secondary text-xs uppercase tracking-wider">
+                        [x] NODE_STATUS
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-secondary">Host Address:</span>
+                        <span id="host-ip-val" class="font-mono text-ink">127.0.0.1</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-secondary">Uptime:</span>
+                        <span id="uptime-val" class="font-mono text-ink">Online</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Workspace Tabs & Logs (lg:col-span-8) -->
+            <div class="flex flex-col space-y-6 lg:col-span-8 h-full">
+                <!-- Tabs Navigation -->
+                <div class="flex gap-2 border-borderCol border-b">
+                    <button id="tab-receive-btn" onclick="switchTab('receive')"
+                        class="bg-cardBg -mb-[1px] px-5 py-2.5 border-borderCol border-t border-r border-l rounded-t-[4px] font-bold text-ink text-sm btn-spring">
+                        [ RECEIVE_FILES ]
+                    </button>
+                    <button id="tab-send-btn" onclick="switchTab('send')"
+                        class="px-5 py-2.5 border-transparent border-b font-bold text-secondary hover:text-ink text-sm btn-spring">
+                        [ SEND_FILES ]
+                    </button>
+                </div>
+
+                <!-- Tabs Content Panels -->
+                <div
+                    class="flex flex-col justify-between bg-cardBg p-7 border border-borderCol rounded-[4px] min-h-[300px]">
+
+                    <!-- Panel: Receive Mode -->
+                    <div id="panel-receive" class="flex flex-col flex-grow justify-between space-y-6">
+                        <div class="flex-grow items-center gap-8 grid grid-cols-1 md:grid-cols-2">
+                            <!-- QR details -->
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="mb-2 font-bold text-secondary text-xs uppercase tracking-wider">
+                                        SCAN_TO_UPLOAD:
+                                    </div>
+                                    <div id="target-url" class="font-bold text-ink text-base break-all tracking-tight">
+                                        Awaiting URL...
+                                    </div>
+                                </div>
+                                <p class="text-secondary text-sm leading-relaxed">
+                                    Scan QR code from phone or tablet connected to the same Wi-Fi network. You can
+                                    upload multiple files or photos directly to this computer.
+                                </p>
+                                <button onclick="copyToClipboard(document.getElementById('target-url').innerText)"
+                                    class="font-bold text-ink hover:text-secondary text-sm underline cursor-pointer">
+                                    Copy upload link
+                                </button>
+                            </div>
+
+                            <!-- QR image display -->
+                            <div class="flex justify-center">
+                                <div class="bg-white shadow-sm p-4 border border-borderCol rounded-[4px]">
+                                    <img id="qr-image" src="" alt="Receive Mode QR" class="block w-52 h-52 select-none">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Send Mode -->
+                    <div id="panel-send" class="hidden flex flex-col flex-grow justify-between space-y-6">
+                        <!-- Select File state -->
+                        <div id="send-select-state" class="flex flex-col flex-grow justify-center items-center py-8">
+                            <div onclick="selectFileToShare()"
+                                class="bg-bg hover:bg-hoverBg px-10 py-14 border border-borderCol hover:border-ink border-dashed rounded-[4px] w-full max-w-lg text-center transition cursor-pointer select-none btn-spring">
+                                <div class="font-bold text-ink text-sm tracking-wider">[ SELECT FILE FROM COMPUTER ]
+                                </div>
+                                <div class="mt-3 font-mono text-secondary text-xs leading-relaxed">Choose a file to
+                                    generate a local download link and QR code</div>
+                            </div>
+                        </div>
+
+                        <!-- Active Share state -->
+                        <div id="send-active-state"
+                            class="hidden flex-grow items-center gap-8 grid grid-cols-1 md:grid-cols-2">
+                            <!-- Shared File Details -->
+                            <div class="space-y-5">
+                                <div class="space-y-3 bg-bg p-5 border border-borderCol rounded-[4px]">
+                                    <div class="font-bold text-secondary text-xs uppercase tracking-wider">[x]
+                                        ACTIVE_SHARE</div>
+                                    <div id="shared-filename" class="font-mono font-bold text-ink text-base truncate">
+                                        filename.ext</div>
+                                    <div id="shared-filesize" class="font-mono text-secondary text-sm">0 KB</div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="font-bold text-secondary text-xs uppercase tracking-wider">
+                                        DOWNLOAD_LINK:</div>
+                                    <div id="shared-url" class="font-mono font-bold text-ink text-sm break-all">Awaiting
+                                        URL...</div>
+                                    <button onclick="copyToClipboard(document.getElementById('shared-url').innerText)"
+                                        class="block mt-2 font-bold text-ink hover:text-secondary text-sm underline cursor-pointer">
+                                        Copy download link
+                                    </button>
+                                </div>
+
+                                <button onclick="cancelFileShare()"
+                                    class="hover:bg-hoverBg px-5 py-2.5 border border-borderCol rounded-[4px] font-bold text-red-500 hover:text-red-400 text-sm btn-spring">
+                                    [ CANCEL_SHARE ]
+                                </button>
+                            </div>
+
+                            <!-- QR Code for active share -->
+                            <div class="flex justify-center">
+                                <div class="bg-white shadow-sm p-4 border border-borderCol rounded-[4px]">
+                                    <img id="qr-send-image" src="" alt="Download QR"
+                                        class="block w-52 h-52 select-none">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log Section (UI log list, not cmd box) -->
+                <div class="flex flex-col pt-2 h-[340px]">
+                    <div class="mb-3 font-bold text-secondary text-xs uppercase tracking-wider">
+                        [x] ACTIVITY_LOG
+                    </div>
+                    <!-- Activity list wrapper -->
+                    <div class="flex flex-col bg-cardBg border border-borderCol rounded-[4px] h-full overflow-hidden">
+                        <!-- List rows -->
+                        <div id="log-list"
+                            class="space-y-1 p-2 divide-y divide-borderCol h-full overflow-y-auto font-mono text-sm">
+                            <div class="p-4 text-secondary text-center italic">Awaiting connection...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script connection to REST API -->
+    <script>
+        let activeTab = 'receive';
+        let currentShareToken = null;
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const rxBtn = document.getElementById('tab-receive-btn');
+            const txBtn = document.getElementById('tab-send-btn');
+            const rxPanel = document.getElementById('panel-receive');
+            const txPanel = document.getElementById('panel-send');
+
+            if (tab === 'receive') {
+                rxBtn.className = "px-5 py-2.5 text-sm font-bold border-t border-l border-r border-borderCol rounded-t-[4px] bg-cardBg text-ink -mb-[1px] btn-spring";
+                txBtn.className = "px-5 py-2.5 text-sm font-bold border-b border-transparent text-secondary hover:text-ink btn-spring";
+                rxPanel.classList.remove('hidden');
+                txPanel.classList.add('hidden');
+            } else {
+                txBtn.className = "px-5 py-2.5 text-sm font-bold border-t border-l border-r border-borderCol rounded-t-[4px] bg-cardBg text-ink -mb-[1px] btn-spring";
+                rxBtn.className = "px-5 py-2.5 text-sm font-bold border-b border-transparent text-secondary hover:text-ink btn-spring";
+                txPanel.classList.remove('hidden');
+                rxPanel.classList.add('hidden');
+            }
+        }
+
+        let lastLoggedTransfer = 0;
+
+        // Helper to append logs to console box as premium UI rows (filtered for key events)
+        function appendLogUI(logLine) {
+            const logList = document.getElementById('log-list');
+            if (!logList) return;
+
+            // Parse timestamp "[HH:MM:SS] [ tag ] Message" or "[HH:MM:SS] Message"
+            const match = logLine.match(/^(\[\d{2}:\d{2}:\d{2}\])\s*(.*)$/);
+            if (!match) return;
+            const timeStr = match[1];
+            const msg = match[2];
+
+            let cleanMsg = "";
+            let type = "info";
+
+            // Custom event filters
+            if (msg.includes("Phone connected")) {
+                cleanMsg = "Phone connected.";
+                type = "success";
+            } else if (msg.includes("Assembling")) {
+                const now = Date.now();
+                if (now - lastLoggedTransfer > 4000) {
+                    cleanMsg = "Transferring files...";
+                    lastLoggedTransfer = now;
+                } else {
+                    return;
+                }
+            } else if (msg.includes("Saved file:")) {
+                const parts = msg.split("Saved file:");
+                cleanMsg = `Received: ${parts[1].trim()}`;
+                type = "success";
+            } else if (msg.includes("Sharing file:")) {
+                const parts = msg.split("Sharing file:");
+                const filePart = parts[1].split("(")[0].trim();
+                cleanMsg = `Sharing: ${filePart}`;
+                type = "info";
+            } else if (msg.includes("Stopped sharing file:")) {
+                const parts = msg.split("Stopped sharing file:");
+                cleanMsg = `Stopped sharing: ${parts[1].trim()}`;
+                type = "warning";
+            } else if (msg.includes("File downloaded by client:")) {
+                const parts = msg.split("File downloaded by client:");
+                cleanMsg = `File downloaded: ${parts[1].trim()}`;
+                type = "success";
+            } else if (msg.includes("Zip extracted successfully to:")) {
+                const parts = msg.split("Zip extracted successfully to:");
+                cleanMsg = `Extracted folder: ${parts[1].trim()}`;
+                type = "success";
+            } else if (msg.includes("Save path updated:")) {
+                const parts = msg.split("Save path updated:");
+                cleanMsg = `Directory updated: ${parts[1].trim()}`;
+                type = "info";
+            } else if (msg.includes("error") || msg.includes("Error") || msg.includes("failure") || msg.includes("failed")) {
+                cleanMsg = msg;
+                type = "error";
+            } else {
+                return; // Suppress all internal startup, scans, connection handshake, and cancelled logs
+            }
+
+            // Remove placeholder if present
+            if (logList.innerHTML.includes('Awaiting connection...') || logList.innerHTML.includes('Initializing logger feed...')) {
+                logList.innerHTML = '';
+            }
+
+            // Create row element
+            const row = document.createElement('div');
+            row.className = 'flex items-start gap-3 p-3 rounded-[4px] hover:bg-hoverBg transition';
+
+            // Badge styling
+            let badgeBg = "bg-zinc-800 text-zinc-400";
+            let badgeText = "INFO";
+            if (type === "success") {
+                badgeBg = "bg-zinc-800 text-zinc-100 font-bold border border-zinc-700";
+                badgeText = "OK";
+            } else if (type === "error") {
+                badgeBg = "bg-red-950/40 text-red-400 border border-red-900/30";
+                badgeText = "FAIL";
+            } else if (type === "warning") {
+                badgeBg = "bg-yellow-950/40 text-yellow-400 border border-yellow-900/30";
+                badgeText = "WARN";
+            }
+
+            row.innerHTML = `
+                <span class="mt-0.5 font-mono text-secondary text-xs shrink-0">${timeStr}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] tracking-wider font-bold uppercase shrink-0 ${badgeBg}">${badgeText}</span>
+                <span class="font-mono text-ink text-sm break-all leading-relaxed">${cleanMsg}</span>
+            `;
+
+            logList.appendChild(row);
+            logList.scrollTop = logList.scrollHeight;
+        }
+
+        // Initialize connection on DOM load
+        window.addEventListener('DOMContentLoaded', async () => {
+            appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Connecting to GhostDrop server...`);
+            try {
+                const res = await fetch('/api/initial-data');
+                const data = await res.json();
+                document.getElementById('target-url').innerText = data.target_url;
+                document.getElementById('save-dir-path').innerText = data.save_dir;
+                document.getElementById('qr-image').src = "/qr.png?t=" + Date.now();
+
+                // Parse IP from target_url
+                try {
+                    const urlObj = new URL(data.target_url);
+                    document.getElementById('host-ip-val').innerText = urlObj.hostname;
+                } catch (e) { }
+
+                // Populate active shares if any
+                if (data.active_shares && data.active_shares.length > 0) {
+                    const activeShare = data.active_shares[0];
+                    currentShareToken = activeShare.token;
+                    document.getElementById('shared-filename').innerText = activeShare.filename;
+                    document.getElementById('shared-filesize').innerText = formatBytes(activeShare.size);
+                    document.getElementById('shared-url').innerText = activeShare.download_url;
+                    document.getElementById('qr-send-image').src = "/qr.png?url=" + encodeURIComponent(activeShare.download_url) + "&t=" + Date.now();
+
+                    document.getElementById('send-select-state').classList.add('hidden');
+                    document.getElementById('send-active-state').classList.remove('hidden');
+                }
+
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] System parameters synced.`);
+
+                // Fetch first logs
+                await fetchNewLogs();
+                // Set polling for logs
+                setInterval(fetchNewLogs, 1000);
+            } catch (err) {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ ! ] Connection failure: ` + err.message);
+            }
+        });
+
+        async function fetchNewLogs() {
+            try {
+                const res = await fetch('/api/logs');
+                const data = await res.json();
+                if (data.logs && data.logs.length > 0) {
+                    data.logs.forEach(log => appendLogUI(log));
+                }
+            } catch (err) {
+                console.error("Log fetch failed", err);
+            }
+        }
+
+        async function browseSaveDir() {
+            try {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Launching folder selection dialog...`);
+                const res = await fetch('/api/select-folder', { method: 'POST' });
+                const data = await res.json();
+                if (data.save_dir) {
+                    document.getElementById('save-dir-path').innerText = data.save_dir;
+                    appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Save path updated to: ${data.save_dir}`);
+                } else {
+                    appendLogUI(`[${new Date().toLocaleTimeString()}] [ - ] Directory selection cancelled.`);
+                }
+            } catch (err) {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ ! ] Directory browse error: ` + err.message);
+            }
+        }
+
+        async function openFolder() {
+            try {
+                await fetch('/api/open-folder', { method: 'POST' });
+            } catch (err) {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ ! ] Failed to open folder: ` + err.message);
+            }
+        }
+
+        async function shutdownServer() {
+            if (confirm("Shutdown GhostDrop Server? This will close the application.")) {
+                try {
+                    appendLogUI(`[${new Date().toLocaleTimeString()}] [ ! ] Sending shutdown signal...`);
+                    await fetch('/api/shutdown', { method: 'POST' });
+                    document.body.innerHTML = `
+                        <div class="flex justify-center items-center bg-bg p-6 min-h-screen font-mono text-red-500 text-center">
+                            <div>
+                                <div class="mb-3 font-bold text-2xl">[ GHOSTDROP SHUTDOWN ]</div>
+                                <div class="text-muted text-sm">The server process was terminated. You can close this tab now.</div>
+                            </div>
+                        </div>
+                    `;
+                } catch (err) {
+                    appendLogUI(`[${new Date().toLocaleTimeString()}] [ ! ] Shutdown request sent.`);
+                }
+            }
+        }
+
+        async function selectFileToShare() {
+            try {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Launching file selection dialog...`);
+                const res = await fetch('/api/select-share-file', { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentShareToken = data.token;
+
+                    document.getElementById('shared-filename').innerText = data.filename;
+                    document.getElementById('shared-filesize').innerText = formatBytes(data.size);
+                    document.getElementById('shared-url').innerText = data.download_url;
+
+                    // Generate QR code dynamically
+                    document.getElementById('qr-send-image').src = "/qr.png?url=" + encodeURIComponent(data.download_url) + "&t=" + Date.now();
+
+                    // Toggle views
+                    document.getElementById('send-select-state').classList.add('hidden');
+                    document.getElementById('send-active-state').classList.remove('hidden');
+
+                    appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Shared: ${data.filename}`);
+                } else {
+                    appendLogUI(`[${new Date().toLocaleTimeString()}] [ - ] File sharing selection cancelled.`);
+                }
+            } catch (err) {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ ! ] File selection error: ` + err.message);
+            }
+        }
+
+        async function cancelFileShare() {
+            if (!currentShareToken) return;
+            try {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Revoking share link...`);
+                const res = await fetch(`/api/cancel-share/${currentShareToken}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentShareToken = null;
+
+                    // Toggle views back
+                    document.getElementById('send-select-state').classList.remove('hidden');
+                    document.getElementById('send-active-state').classList.add('hidden');
+
+                    appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Share link revoked.`);
+                }
+            } catch (err) {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ ! ] Error revoking share link: ` + err.message);
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                appendLogUI(`[${new Date().toLocaleTimeString()}] [ + ] Link copied to clipboard.`);
+            }).catch(err => {
+                console.error("Copy failed", err);
+            });
+        }
+
+        // Heartbeat — ping server every 3s so it knows the browser is open.
+        // If pings stop (tab/browser closed), server auto-terminates.
+        function sendHeartbeat() {
+            fetch('/api/heartbeat', { method: 'POST' }).catch(() => { });
+        }
+        sendHeartbeat();
+        setInterval(sendHeartbeat, 3000);
+    </script>
+</body>
+
+</html>
